@@ -1,0 +1,34 @@
+[package]
+name = "social-client"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dcl-rpc = {version = "2.1.1" , features = ["client"]}
+prost = "0.11.5"
+async-channel = "1.8.0"
+async-trait = "0.1.57"
+bytes = "1.3.0"
+futures-channel = "0.3"
+futures-util = {version = "0.3", default-features = false, features = ["sink", "std"]}
+log = "0.4.17"
+tokio = {version = "1.0.0", default-features = false, features = ["io-util", "io-std", "macros", "net", "rt-multi-thread", "time", "sync"]}
+tokio-tungstenite = "*"
+tokio-util = "0.7.4"
+rcgen = "0.10.0"
+
+[build-dependencies]
+dcl-rpc = {version = "2.1.1", features = ["client"]}
+prost-build = "0.11.5"
+reqwest = { version = "0.11", features = ["json", "blocking"] }
+serde_json = "1.0.94"
+
+[[bin]]
+name = "a-client-ws"
+path = "src/client.rs"
+
+[[bin]]
+name = "b-client-ws"
+path = "src/another_client.rs"

@@ -1,2 +1,3 @@
-# social-client
-Reference Client Implementation of the Social Service
+# Social Client
+
+Reference Client Implementations of the Social Service
