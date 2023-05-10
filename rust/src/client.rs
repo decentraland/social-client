@@ -9,14 +9,15 @@ use tokio::time::sleep;
 
 use social_client::{
     friendship_event_payload, AcceptPayload, CancelPayload, DeletePayload, FriendshipEventPayload,
-    FriendshipsServiceClient, FriendshipsServiceClientDefinition, Payload, RequestPayload,
-    UpdateFriendshipPayload, User,
+    FriendshipsServiceClient, FriendshipsServiceClientDefinition, Payload, RejectPayload,
+    RequestPayload, UpdateFriendshipPayload, User,
 };
 
 // Define different flows
 enum Flow {
     Flow1,
     Flow2,
+    Flow3,
 }
 
 impl Flow {
@@ -24,6 +25,7 @@ impl Flow {
         match s {
             "flow1" => Some(Flow::Flow1),
             "flow2" => Some(Flow::Flow2),
+            "flow3" => Some(Flow::Flow3),
             _ => None,
         }
     }
@@ -47,6 +49,11 @@ impl Flow {
                 request_a_to_b(module, token_user_a, user_b_address).await;
                 accept_b_to_a(module, token_user_b, user_a_address).await;
                 delete_a_to_b(module, token_user_a, user_b_address).await;
+            }
+            Flow::Flow3 => {
+                // Implement Flow 3: Request A-B, Reject B-A
+                request_a_to_b(module, token_user_a, user_b_address).await;
+                reject_b_to_a(module, token_user_b, user_a_address).await;
             }
         }
     }
@@ -120,9 +127,6 @@ async fn cancel_a_to_b(
             panic!("{err:?}")
         }
     }
-
-    // The state resolution from synapse takes some time
-    sleep(Duration::from_secs(5)).await;
 }
 
 async fn accept_b_to_a(
@@ -161,6 +165,39 @@ async fn accept_b_to_a(
     sleep(Duration::from_secs(5)).await;
 }
 
+async fn reject_b_to_a(
+    module: &FriendshipsServiceClient<WebSocketTransport>,
+    token_user_b: &str,
+    user_a_address: &str,
+) {
+    let reject_payload = RejectPayload {
+        user: Some(User {
+            address: user_a_address.to_string(),
+        }),
+    };
+    let reject_event = FriendshipEventPayload {
+        body: Some(friendship_event_payload::Body::Reject(reject_payload)),
+    };
+    let reject_b_to_a_response = module
+        .update_friendship_event(UpdateFriendshipPayload {
+            event: Some(reject_event),
+            auth_token: Some(Payload {
+                synapse_token: Some(token_user_b.to_string()),
+            }),
+        })
+        .await;
+    match reject_b_to_a_response {
+        Ok(reject_b_to_a_response) => {
+            println!(
+              "> Server Unary > Response > UpdateFrienshipResponse Reject::B->A {reject_b_to_a_response:?}"
+          );
+        }
+        Err(err) => {
+            panic!("{err:?}")
+        }
+    }
+}
+
 async fn delete_a_to_b(
     module: &FriendshipsServiceClient<WebSocketTransport>,
     token_user_a: &str,
@@ -192,9 +229,6 @@ async fn delete_a_to_b(
             panic!("{err:?}")
         }
     }
-
-    // The state resolution from synapse takes some time
-    sleep(Duration::from_secs(5)).await;
 }
 
 #[tokio::main]

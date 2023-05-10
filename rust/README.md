@@ -10,11 +10,13 @@ There are two available flows:
 
 - `flow1`: Sends a friendship request and then cancels it.
 - `flow2`: Sends a friendship request, accepts the friendship, and then deletes it.
+- `flow3`: Sends a friendship request and then rejects it.
 
 You can specify the flow to execute as a command-line argument. Here's how to run the client with each flow:
 
 For flow1: `cargo run --bin a-client-ws -- flow1`
 For flow2: `cargo run --bin a-client-ws -- flow2`
+For flow3: `cargo run --bin a-client-ws -- flow3`
 
 If no flow is specified, the program will panic with a message indicating that a flow must be provided.
 
