@@ -1,9 +1,11 @@
-use std::env;
+use std::{env, time::Duration};
 
 use dcl_rpc::{
     client::RpcClient,
     transports::web_socket::{WebSocketClient, WebSocketTransport},
 };
+
+use tokio::time::sleep;
 
 use social_client::{
     friendship_event_payload, AcceptPayload, CancelPayload, DeletePayload, FriendshipEventPayload,
@@ -75,14 +77,16 @@ async fn request_a_to_b(
     match request_a_to_b_response {
         Ok(request_a_to_b_response) => {
             println!(
-                "> Server Unary > Response > UpdateFrienshipResponse Request::A->B {:?}",
-                request_a_to_b_response
+                "> Server Unary > Response > UpdateFrienshipResponse Request::A->B {request_a_to_b_response:?}"
             );
         }
         Err(err) => {
             panic!("{err:?}")
         }
     }
+
+    // The state resolution from synapse takes some time
+    sleep(Duration::from_secs(5)).await;
 }
 
 async fn cancel_a_to_b(
@@ -109,14 +113,16 @@ async fn cancel_a_to_b(
     match a {
         Ok(cancel_a_to_b_response) => {
             println!(
-                "> Server Unary > Response > UpdateFrienshipResponse Cancel::A->B {:?}",
-                cancel_a_to_b_response
+                "> Server Unary > Response > UpdateFrienshipResponse Cancel::A->B {cancel_a_to_b_response:?}"
             );
         }
         Err(err) => {
             panic!("{err:?}")
         }
     }
+
+    // The state resolution from synapse takes some time
+    sleep(Duration::from_secs(5)).await;
 }
 
 async fn accept_b_to_a(
@@ -143,14 +149,16 @@ async fn accept_b_to_a(
     match accept_b_to_a_response {
         Ok(accept_b_to_a_response) => {
             println!(
-                "> Server Unary > Response > UpdateFrienshipResponse Accept::B->A {:?}",
-                accept_b_to_a_response
+                "> Server Unary > Response > UpdateFrienshipResponse Accept::B->A {accept_b_to_a_response:?}"
             );
         }
         Err(err) => {
             panic!("{err:?}")
         }
     }
+
+    // The state resolution from synapse takes some time
+    sleep(Duration::from_secs(5)).await;
 }
 
 async fn delete_a_to_b(
@@ -177,14 +185,16 @@ async fn delete_a_to_b(
     match delete_a_to_b_response {
         Ok(delete_a_to_b_response) => {
             println!(
-                "> Server Unary > Response > UpdateFrienshipResponse Delete::A->B {:?}",
-                delete_a_to_b_response
+                "> Server Unary > Response > UpdateFrienshipResponse Delete::A->B {delete_a_to_b_response:?}"
             );
         }
         Err(err) => {
             panic!("{err:?}")
         }
     }
+
+    // The state resolution from synapse takes some time
+    sleep(Duration::from_secs(5)).await;
 }
 
 #[tokio::main]
@@ -240,8 +250,7 @@ async fn main() {
     match friendship_request_events {
         Ok(friendship_request_events) => {
             println!(
-                "> Server Unary > Response > GetRequestsResponse {:?}",
-                friendship_request_events
+                "> Server Unary > Response > GetRequestsResponse {friendship_request_events:?}"
             );
         }
         Err(err) => {
