@@ -40,7 +40,7 @@ impl Flow {
     ) {
         match self {
             Flow::Flow1 => {
-                // Implement Flow 1: Request A-B -> Cancel A-B
+                // Implement Flow 1: Request A-B, Cancel A-B
                 request_a_to_b(module, token_user_a, user_b_address).await;
                 cancel_a_to_b(module, token_user_a, user_b_address).await;
             }
