@@ -8,7 +8,7 @@ This is the executor of the actions, gets all friends and requests and then perf
 
 There are two available flows:
 
-- `flow1`: Sends a friendship request and then cancels it.
+- `flow1`: User A sends a friendship request and then cancels it.
 - `flow2`: Sends a friendship request, accepts the friendship, and then deletes it.
 - `flow3`: Sends a friendship request and then rejects it.
 
