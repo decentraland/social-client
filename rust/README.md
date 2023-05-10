@@ -9,7 +9,7 @@ This is the executor of the actions, gets all friends and requests and then perf
 There are two available flows:
 
 - `flow1`: User A sends a friendship request and then cancels it.
-- `flow2`: Sends a friendship request, accepts the friendship, and then deletes it.
+- `flow2`: User A sends a friendship request, User B accepts the friendship, and then User A deletes it.
 - `flow3`: Sends a friendship request and then rejects it.
 
 You can specify the flow to execute as a command-line argument. Here's how to run the client with each flow:
