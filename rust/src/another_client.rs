@@ -1,19 +1,16 @@
-use social_client::{FriendshipsServiceClient, Payload};
 use dcl_rpc::{
     client::RpcClient,
-    transports::web_socket::{WebSocketTransport, WebSocketClient},
+    transports::web_socket::{WebSocketClient, WebSocketTransport},
 };
 use social_client::FriendshipsServiceClientDefinition;
-
+use social_client::{FriendshipsServiceClient, Payload};
 
 #[tokio::main]
 async fn main() {
     let token = "";
     // let host = "wss://rpc-social-service.decentraland.zone";
     let host = "ws://127.0.0.1:8085";
-    let client_connection = WebSocketClient::connect(host)
-        .await
-        .unwrap();
+    let client_connection = WebSocketClient::connect(host).await.unwrap();
 
     let client_transport = WebSocketTransport::new(client_connection);
 
@@ -34,15 +31,12 @@ async fn main() {
         .await;
     match updates_response {
         Ok(mut u) => {
-          while let Some(update) = u.next().await {
-              println!(
-                  "> Server Streams > Response > Notifications {:?}",
-                  update
-              )
-          };
-        },
+            while let Some(update) = u.next().await {
+                println!("> Server Streams > Response > Notifications {update:?}")
+            }
+        }
         Err(err) => {
-          panic!("{:?}", err)
+            panic!("{err:?}")
         }
     }
 }

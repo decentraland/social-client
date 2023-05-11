@@ -1,23 +1,224 @@
+use std::{env, time::Duration};
+
+use std::io::{self, Write};
+
 use dcl_rpc::{
     client::RpcClient,
     transports::web_socket::{WebSocketClient, WebSocketTransport},
 };
 
+use tokio::time::sleep;
+
 use social_client::{
-    friendship_event_payload, FriendshipEventPayload, FriendshipsServiceClient,
-    FriendshipsServiceClientDefinition, Payload, RequestPayload, CancelPayload, UpdateFriendshipPayload, User,
+    friendship_event_payload, AcceptPayload, CancelPayload, DeletePayload, FriendshipEventPayload,
+    FriendshipsServiceClient, FriendshipsServiceClientDefinition, Payload, RejectPayload,
+    RequestPayload, UpdateFriendshipPayload, User,
 };
+
+// Define different flows
+enum Flow {
+    Flow1,
+    Flow2,
+    Flow3,
+    Flow4,
+}
+
+impl Flow {
+    fn from_str(s: &str) -> Option<Flow> {
+        match s {
+            "flow1" => Some(Flow::Flow1),
+            "flow2" => Some(Flow::Flow2),
+            "flow3" => Some(Flow::Flow3),
+            "flow4" => Some(Flow::Flow4),
+            _ => None,
+        }
+    }
+
+    async fn execute(
+        &self,
+        module: &FriendshipsServiceClient<WebSocketTransport>,
+        token_user_a: &str,
+        token_user_b: &str,
+        user_a_address: &str,
+        user_b_address: &str,
+    ) {
+        match self {
+            Flow::Flow1 => {
+                // Implement Flow 1: Request A-B, Cancel A-B
+                request(module, token_user_a, user_b_address).await;
+                cancel(module, token_user_a, user_b_address).await;
+            }
+            Flow::Flow2 => {
+                // Implement Flow 2: Request A-B, Accept B-A, Delete A-B
+                request(module, token_user_a, user_b_address).await;
+                accept(module, token_user_b, user_a_address).await;
+                delete(module, token_user_a, user_b_address).await;
+            }
+            Flow::Flow3 => {
+                // Implement Flow 3: Request A-B, Reject B-A
+                request(module, token_user_a, user_b_address).await;
+                reject(module, token_user_b, user_a_address).await;
+            }
+            Flow::Flow4 => {
+                // Implement Flow 4: Request A-B, Accept B-A, Delete B-A
+                request(module, token_user_a, user_b_address).await;
+                accept(module, token_user_b, user_a_address).await;
+                delete(module, token_user_a, user_b_address).await;
+            }
+        }
+    }
+}
+
+async fn request(
+    module: &FriendshipsServiceClient<WebSocketTransport>,
+    token: &str,
+    user_address: &str,
+) {
+    let request_payload = RequestPayload {
+        user: Some(User {
+            address: user_address.to_string(),
+        }),
+        message: Some("A message".to_string()),
+    };
+
+    update_friendship_event(
+        module,
+        token,
+        friendship_event_payload::Body::Request(request_payload),
+    )
+    .await;
+}
+
+async fn cancel(
+    module: &FriendshipsServiceClient<WebSocketTransport>,
+    token: &str,
+    user_address: &str,
+) {
+    let cancel_payload = CancelPayload {
+        user: Some(User {
+            address: user_address.to_string(),
+        }),
+    };
+
+    update_friendship_event(
+        module,
+        token,
+        friendship_event_payload::Body::Cancel(cancel_payload),
+    )
+    .await;
+}
+
+async fn accept(
+    module: &FriendshipsServiceClient<WebSocketTransport>,
+    token: &str,
+    user_address: &str,
+) {
+    let accept_payload = AcceptPayload {
+        user: Some(User {
+            address: user_address.to_string(),
+        }),
+    };
+
+    update_friendship_event(
+        module,
+        token,
+        friendship_event_payload::Body::Accept(accept_payload),
+    )
+    .await;
+}
+
+async fn reject(
+    module: &FriendshipsServiceClient<WebSocketTransport>,
+    token: &str,
+    user_address: &str,
+) {
+    let reject_payload = RejectPayload {
+        user: Some(User {
+            address: user_address.to_string(),
+        }),
+    };
+
+    update_friendship_event(
+        module,
+        token,
+        friendship_event_payload::Body::Reject(reject_payload),
+    )
+    .await;
+}
+
+async fn delete(
+    module: &FriendshipsServiceClient<WebSocketTransport>,
+    token: &str,
+    user_address: &str,
+) {
+    let delete_payload = DeletePayload {
+        user: Some(User {
+            address: user_address.to_string(),
+        }),
+    };
+
+    update_friendship_event(
+        module,
+        token,
+        friendship_event_payload::Body::Delete(delete_payload),
+    )
+    .await;
+}
+
+async fn update_friendship_event(
+    module: &FriendshipsServiceClient<WebSocketTransport>,
+    token: &str,
+    body: friendship_event_payload::Body,
+) {
+    let event_payload = FriendshipEventPayload { body: Some(body) };
+    let response = module
+        .update_friendship_event(UpdateFriendshipPayload {
+            event: Some(event_payload),
+            auth_token: Some(Payload {
+                synapse_token: Some(token.to_string()),
+            }),
+        })
+        .await;
+    match response {
+        Ok(response) => {
+            println!("> Server Unary > Response > UpdateFrienshipResponse:: {response:?}");
+        }
+        Err(err) => {
+            panic!("{err:?}")
+        }
+    }
+
+    // The state resolution from synapse takes some time
+    sleep(Duration::from_secs(5)).await;
+}
+
+async fn get_input(prompt: &str) -> io::Result<String> {
+    print!("{prompt}");
+    io::stdout().flush()?; // Ensure the prompt is displayed before read_line
+
+    let mut buffer = String::new();
+    io::stdin().read_line(&mut buffer)?;
+
+    Ok(buffer.trim_end().to_owned())
+}
+
+async fn get_inputs() -> (String, String, String, String) {
+    let token_user_a = get_input("Enter Token for User A: ").await.unwrap();
+    let token_user_b = get_input("Enter Token for User B: ").await.unwrap();
+    let user_a_address = get_input("Enter Address for User A: ").await.unwrap();
+    let user_b_address = get_input("Enter Address for User B: ").await.unwrap();
+
+    (token_user_a, token_user_b, user_a_address, user_b_address)
+}
 
 #[tokio::main]
 async fn main() {
-    let token = "";
-    let user_b_address = "";
+    let (token_user_a, token_user_b, user_a_address, user_b_address) = get_inputs().await;
+
     // let host = "wss://rpc-social-service.decentraland.zone";
     let host = "ws://127.0.0.1:8085";
 
-    let client_connection = WebSocketClient::connect(host)
-        .await
-        .unwrap();
+    let client_connection = WebSocketClient::connect(host).await.unwrap();
 
     let client_transport = WebSocketTransport::new(client_connection);
 
@@ -33,7 +234,7 @@ async fn main() {
     // 1. Get Friends message
     let friends_response = module
         .get_friends(Payload {
-            synapse_token: Some(token.to_string()),
+            synapse_token: Some(token_user_a.to_string()),
         })
         .await;
     match friends_response {
@@ -44,95 +245,43 @@ async fn main() {
                     friend.users
                 )
             }
-        },
+        }
         Err(err) => {
-            panic!("{:?}", err)
+            panic!("{err:?}")
         }
     }
 
     // 2. Get Requests Events message
     let friendship_request_events = module
         .get_request_events(Payload {
-            synapse_token: Some(token.to_string()),
+            synapse_token: Some(token_user_a.to_string()),
         })
         .await;
     match friendship_request_events {
         Ok(friendship_request_events) => {
             println!(
-                "> Server Unary > Response > GetRequestsResponse {:?}",
-                friendship_request_events
+                "> Server Unary > Response > GetRequestsResponse {friendship_request_events:?}"
             );
-        },
+        }
         Err(err) => {
-            panic!("{:?}", err);
+            panic!("{err:?}");
         }
     }
-
 
     // 3. Update Friendship Events message
-
-    // 3.a. Request A->B
-    let request_payload = RequestPayload {
-        user: Some(User {
-            address: user_b_address.to_string(),
-        }),
-        message: Some("A message from userA to userB".to_string()),
-    };
-    let request_event = FriendshipEventPayload {
-        body: Some(friendship_event_payload::Body::Request(
-            request_payload
-        )),
-    };
-    let request_a_to_b_response = module
-        .update_friendship_event(
-            UpdateFriendshipPayload {
-                event: Some(request_event),
-                auth_token: Some(Payload {
-                    synapse_token: Some(token.to_string()),
-                }),
-            }
-        )
-        .await;
-    match request_a_to_b_response {
-        Ok(request_a_to_b_response) => {
-            println!(
-                "> Server Unary > Response > UpdateFrienshipResponse Request::A->B {:?}",
-                request_a_to_b_response
-            );
-        },
-        Err(err) => {
-            panic!("{:?}", err)
-        }
+    // Get the flow to execute from command-line arguments
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        panic!("Please provide a flow to execute");
     }
+    let flow = Flow::from_str(&args[1]).expect("Invalid flow");
 
-    // 3.b. Cancel A->B
-    let cancel_payload = CancelPayload {
-        user: Some(User {
-            address: user_b_address.to_string(),
-        })
-    };
-    let cancel_event = FriendshipEventPayload {
-        body: Some(friendship_event_payload::Body::Cancel(
-            cancel_payload
-        )),
-    };
-    let a = module
-        .update_friendship_event(
-            UpdateFriendshipPayload {
-                event: Some(cancel_event),
-                auth_token: Some(Payload {
-                    synapse_token: Some(token.to_string()),
-                }),
-            }
-        ).await;
-    match a {
-        Ok(cancel_a_to_b_response) => {
-            println!(
-                "> Server Unary > Response > UpdateFrienshipResponse Cancel::A->B {:?}",
-                cancel_a_to_b_response
-            );
-        },
-        Err(err) => { panic!("{:?}",err)}
-    }
-
+    flow.execute(
+        &module,
+        &token_user_a,
+        &token_user_b,
+        &user_a_address,
+        &user_b_address,
+    )
+    .await;
 }

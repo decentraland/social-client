@@ -8,9 +8,6 @@ use std::{
 extern crate reqwest;
 use reqwest::{header::USER_AGENT, Url};
 
-
-
-
 const DCL_PROTOCOL_REPO_URL: &str =
     "https://api.github.com/repos/decentraland/protocol/contents/proto/decentraland";
 const FRIENDSHIP_PROTO_PATH: &str = "/social/friendships/friendships.proto";
@@ -36,7 +33,6 @@ fn main() -> Result<()> {
     )?;
     Ok(())
 }
-
 
 /// Avoid the GitHub Request if the file exists and has been modified in the last hour.
 /// It will return `true` if the file has not been modified in the last hour or doesn't exist.
