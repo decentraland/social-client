@@ -1,5 +1,7 @@
 use std::{env, time::Duration};
 
+use std::io::{self, Write};
+
 use dcl_rpc::{
     client::RpcClient,
     transports::web_socket::{WebSocketClient, WebSocketTransport},
@@ -190,13 +192,28 @@ async fn update_friendship_event(
     sleep(Duration::from_secs(5)).await;
 }
 
+async fn get_input(prompt: &str) -> io::Result<String> {
+    print!("{prompt}");
+    io::stdout().flush()?; // Ensure the prompt is displayed before read_line
+
+    let mut buffer = String::new();
+    io::stdin().read_line(&mut buffer)?;
+
+    Ok(buffer.trim_end().to_owned())
+}
+
+async fn get_inputs() -> (String, String, String, String) {
+    let token_user_a = get_input("Enter Token for User A: ").await.unwrap();
+    let token_user_b = get_input("Enter Token for User B: ").await.unwrap();
+    let user_a_address = get_input("Enter Address for User A: ").await.unwrap();
+    let user_b_address = get_input("Enter Address for User B: ").await.unwrap();
+
+    (token_user_a, token_user_b, user_a_address, user_b_address)
+}
+
 #[tokio::main]
 async fn main() {
-    let token_user_a = "";
-    let token_user_b = "";
-
-    let user_a_address = "";
-    let user_b_address = "";
+    let (token_user_a, token_user_b, user_a_address, user_b_address) = get_inputs().await;
 
     // let host = "wss://rpc-social-service.decentraland.zone";
     let host = "ws://127.0.0.1:8085";
@@ -261,10 +278,10 @@ async fn main() {
 
     flow.execute(
         &module,
-        token_user_a,
-        token_user_b,
-        user_a_address,
-        user_b_address,
+        &token_user_a,
+        &token_user_b,
+        &user_a_address,
+        &user_b_address,
     )
     .await;
 }
