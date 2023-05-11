@@ -15,9 +15,7 @@ There are two available flows:
 
 You can specify the flow to execute as a command-line argument. Here's how to run the client with each flow:
 
-For flow1: `cargo run --bin a-client-ws -- flow1`
-For flow2: `cargo run --bin a-client-ws -- flow2`
-For flow3: `cargo run --bin a-client-ws -- flow3`
+`cargo run --bin a-client-ws -- flow{{number}}`
 
 If no flow is specified, the program will panic with a message indicating that a flow must be provided.
 
