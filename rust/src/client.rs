@@ -18,6 +18,7 @@ enum Flow {
     Flow1,
     Flow2,
     Flow3,
+    Flow4,
 }
 
 impl Flow {
@@ -26,6 +27,7 @@ impl Flow {
             "flow1" => Some(Flow::Flow1),
             "flow2" => Some(Flow::Flow2),
             "flow3" => Some(Flow::Flow3),
+            "flow4" => Some(Flow::Flow4),
             _ => None,
         }
     }
@@ -54,6 +56,12 @@ impl Flow {
                 // Implement Flow 3: Request A-B, Reject B-A
                 request_a_to_b(module, token_user_a, user_b_address).await;
                 reject_b_to_a(module, token_user_b, user_a_address).await;
+            }
+            Flow::Flow4 => {
+                // Implement Flow 4: Request A-B, Accept B-A, Delete B-A
+                request_a_to_b(module, token_user_a, user_b_address).await;
+                accept_b_to_a(module, token_user_b, user_a_address).await;
+                delete_b_to_a(module, token_user_a, user_b_address).await;
             }
         }
     }
@@ -224,6 +232,39 @@ async fn delete_a_to_b(
             println!(
                 "> Server Unary > Response > UpdateFrienshipResponse Delete::A->B {delete_a_to_b_response:?}"
             );
+        }
+        Err(err) => {
+            panic!("{err:?}")
+        }
+    }
+}
+
+async fn delete_b_to_a(
+    module: &FriendshipsServiceClient<WebSocketTransport>,
+    token_user_b: &str,
+    user_a_address: &str,
+) {
+    let delete_payload = DeletePayload {
+        user: Some(User {
+            address: user_a_address.to_string(),
+        }),
+    };
+    let delete_event = FriendshipEventPayload {
+        body: Some(friendship_event_payload::Body::Delete(delete_payload)),
+    };
+    let delete_b_to_a_response = module
+        .update_friendship_event(UpdateFriendshipPayload {
+            event: Some(delete_event),
+            auth_token: Some(Payload {
+                synapse_token: Some(token_user_b.to_string()),
+            }),
+        })
+        .await;
+    match delete_b_to_a_response {
+        Ok(delete_b_to_a_response) => {
+            println!(
+              "> Server Unary > Response > UpdateFrienshipResponse Delete::B->A {delete_b_to_a_response:?}"
+          );
         }
         Err(err) => {
             panic!("{err:?}")
