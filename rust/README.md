@@ -3,6 +3,8 @@ A Websocket client implemented in Rust, using [dcl-rpc](https://crates.io/crates
 
 ## Run clients
 
+To avoid entering the credentials every time you run the script you can add the credentials.json file (a template is at credentials.example.json)
+
 ### Client A: Executor
 This is the executor of the actions, gets all friends and requests and then performs actions based on the specified flow. 
 
