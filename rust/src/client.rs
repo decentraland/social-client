@@ -242,7 +242,7 @@ async fn main() {
             while let Some(friend) = friends_response.next().await {
                 println!(
                     "> Server Streams > Response > GetAllFriendsResponse {:?}",
-                    friend.users
+                    friend.response
                 )
             }
         }
