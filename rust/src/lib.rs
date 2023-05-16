@@ -1,3 +1,5 @@
+pub mod credentials;
+
 include!(concat!(
     env!("OUT_DIR"),
     "/decentraland.social.friendships.rs"

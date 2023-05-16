@@ -2,12 +2,16 @@ use dcl_rpc::{
     client::RpcClient,
     transports::web_socket::{WebSocketClient, WebSocketTransport},
 };
-use social_client::FriendshipsServiceClientDefinition;
+use social_client::{credentials::load_users, FriendshipsServiceClientDefinition};
 use social_client::{FriendshipsServiceClient, Payload};
 
 #[tokio::main]
 async fn main() {
-    let token = "";
+    // Auth Users
+    let (_, user_b) = load_users().await;
+
+    let token = user_b.token;
+
     // let host = "wss://rpc-social-service.decentraland.zone";
     let host = "ws://127.0.0.1:8085";
     let client_connection = WebSocketClient::connect(host).await.unwrap();
