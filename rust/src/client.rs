@@ -1,5 +1,4 @@
-
-use std::{env, time::Duration, io::{self, Write}};
+use std::{env, time::Duration};
 
 use dcl_rpc::{
     client::RpcClient,
@@ -9,6 +8,7 @@ use dcl_rpc::{
 use tokio::time::sleep;
 
 use social_client::{
+    credentials::{load_users, AuthUser},
     friendship_event_payload, AcceptPayload, CancelPayload, DeletePayload, FriendshipEventPayload,
     FriendshipsServiceClient, FriendshipsServiceClientDefinition, Payload, RejectPayload,
     RequestPayload, UpdateFriendshipPayload, User,
@@ -62,6 +62,7 @@ impl Flow {
                 accept(module, &user_b.token, &user_a.address).await;
                 delete(module, &user_a.token, &user_b.address).await;
             }
+            _ => {} // Do nothing for other cases
         }
     }
 }
@@ -189,38 +190,22 @@ async fn update_friendship_event(
     sleep(Duration::from_secs(5)).await;
 }
 
-async fn get_input(prompt: &str) -> io::Result<String> {
-    print!("{prompt}");
-    io::stdout().flush()?; // Ensure the prompt is displayed before read_line
-
-    let mut buffer = String::new();
-    io::stdin().read_line(&mut buffer)?;
-
-    Ok(buffer.trim_end().to_owned())
-}
-
-
-
-#[derive(Clone, Debug)]
-struct AuthUser {
-    address: String,
-    token: String,
-}
-
 #[tokio::main]
 async fn main() {
     // Get the flow to execute from command-line arguments
     let args: Vec<String> = env::args().collect();
-    if args.len() < 2 {
-        panic!("Please provide a flow to execute");
-    }
-    let flow = Flow::from_str(&args[1]).expect("Invalid flow");
+    let flow = if args.len() >= 2 {
+        Flow::from_str(&args[1])
+    } else {
+        println!("No flow provided");
+        None
+    };
 
     // Auth Users
     let (user_a, user_b) = load_users().await;
 
-    let host = "wss://rpc-social-service.decentraland.zone";
-    // let host = "ws://127.0.0.1:8085";
+    // let host = "wss://rpc-social-service.decentraland.zone";
+    let host = "ws://127.0.0.1:8085";
 
     let client_connection = WebSocketClient::connect(host).await.unwrap();
 
@@ -243,6 +228,7 @@ async fn main() {
         .await;
     match friends_response {
         Ok(mut friends_response) => {
+            println!("> Server Streams > Response > GetAllFriendsResponse");
             while let Some(friend) = friends_response.next().await {
                 println!(
                     "> Server Streams > Response > GetAllFriendsResponse {:?}",
@@ -273,53 +259,9 @@ async fn main() {
     }
 
     // 3. Update Friendship Events message
-    flow.execute(
-        &module,
-        user_a,
-        user_b,
-    )
-    .await;
-}
-
-
-async fn load_users() -> (AuthUser, AuthUser) {
-    // Read token from file
-    match std::fs::read_to_string("credentials.json") {
-        Ok(it) => {
-            let users = serde_json::from_str::<serde_json::Value>(&it).unwrap();
-            let users = &users["users"];
-            
-            let user_a = extract_user(&users[0], "A").await;
-            let user_b = extract_user(&users[1], "B").await;
-
-            (user_a, user_b)
-        },
-        Err(_) => {
-            // If missing read from stdin
-            let token_user_a = get_input("Enter Token for User A: ").await.unwrap();
-            let token_user_b = get_input("Enter Token for User B: ").await.unwrap();
-            let user_a_address = get_input("Enter Address for User A: ").await.unwrap();
-            let user_b_address = get_input("Enter Address for User B: ").await.unwrap();
-        
-            (AuthUser{address: user_a_address, token: token_user_a}, AuthUser{address: user_b_address, token: token_user_b})
-        },
+    if let Some(flow) = flow {
+        flow.execute(&module, user_a, user_b).await;
+    } else {
+        // Doing nothing
     }
-}
-
-async fn extract_user(user: &serde_json::Value, user_id: &str) -> AuthUser {
-    let address =  match user["address"].as_str() {
-        Some(address) => address.to_string(),
-        None => {
-            let message = format!("Enter address for User {}: ", user_id);
-            get_input(&message).await.unwrap()
-        }
-    };
-    let token =  match user["token"].as_str() {
-        Some(token) => token.to_string(),
-        None => {
-            let message = format!("Enter token for User {}: ", user_id);
-            get_input(&message).await.unwrap()
-        }
-    };
-    AuthUser{address, token}
 }
