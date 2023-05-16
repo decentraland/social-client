@@ -60,7 +60,7 @@ impl Flow {
                 // Implement Flow 4: Request A-B, Accept B-A, Delete B-A
                 request(module, &user_a.token, &user_b.address).await;
                 accept(module, &user_b.token, &user_a.address).await;
-                delete(module, &user_a.token, &user_b.address).await;
+                delete(module, &user_b.token, &user_a.address).await;
             }
         }
     }
@@ -203,8 +203,8 @@ async fn main() {
     // Auth Users
     let (user_a, user_b) = load_users().await;
 
-    // let host = "wss://rpc-social-service.decentraland.zone";
-    let host = "ws://127.0.0.1:8085";
+    let host = "wss://rpc-social-service.decentraland.zone";
+    // let host = "ws://127.0.0.1:8085";
 
     let client_connection = WebSocketClient::connect(host).await.unwrap();
 
