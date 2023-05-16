@@ -13,6 +13,8 @@ rust/target/
 *.pdb
 # Credentials
 rust/credentials.json
+rust/credentials.org.json
+rust/credentials.zone.json
 
 
 ## Proto

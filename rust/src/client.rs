@@ -1,18 +1,18 @@
 use std::{env, time::Duration};
-
 use dcl_rpc::{
     client::RpcClient,
-    transports::web_socket::{WebSocketClient, WebSocketTransport},
+    transports::web_sockets::{tungstenite::TungsteniteWebSocket, WebSocketTransport},
 };
-
 use tokio::time::sleep;
-
+use dcl_rpc::transports::web_sockets::tungstenite::WebSocketClient;
 use social_client::{
     credentials::{load_users, AuthUser},
     friendship_event_payload, AcceptPayload, CancelPayload, DeletePayload, FriendshipEventPayload,
     FriendshipsServiceClient, FriendshipsServiceClientDefinition, Payload, RejectPayload,
     RequestPayload, UpdateFriendshipPayload, User,
 };
+
+type Transport = WebSocketTransport<TungsteniteWebSocket, ()>;
 
 // Define different flows
 enum Flow {
@@ -35,7 +35,7 @@ impl Flow {
 
     async fn execute(
         &self,
-        module: &FriendshipsServiceClient<WebSocketTransport>,
+        module: &FriendshipsServiceClient<Transport>,
         user_a: AuthUser,
         user_b: AuthUser,
     ) {
@@ -67,7 +67,7 @@ impl Flow {
 }
 
 async fn request(
-    module: &FriendshipsServiceClient<WebSocketTransport>,
+    module: &FriendshipsServiceClient<Transport>,
     token: &str,
     user_address: &str,
 ) {
@@ -87,7 +87,7 @@ async fn request(
 }
 
 async fn cancel(
-    module: &FriendshipsServiceClient<WebSocketTransport>,
+    module: &FriendshipsServiceClient<Transport>,
     token: &str,
     user_address: &str,
 ) {
@@ -106,7 +106,7 @@ async fn cancel(
 }
 
 async fn accept(
-    module: &FriendshipsServiceClient<WebSocketTransport>,
+    module: &FriendshipsServiceClient<Transport>,
     token: &str,
     user_address: &str,
 ) {
@@ -125,7 +125,7 @@ async fn accept(
 }
 
 async fn reject(
-    module: &FriendshipsServiceClient<WebSocketTransport>,
+    module: &FriendshipsServiceClient<Transport>,
     token: &str,
     user_address: &str,
 ) {
@@ -144,7 +144,7 @@ async fn reject(
 }
 
 async fn delete(
-    module: &FriendshipsServiceClient<WebSocketTransport>,
+    module: &FriendshipsServiceClient<Transport>,
     token: &str,
     user_address: &str,
 ) {
@@ -163,7 +163,7 @@ async fn delete(
 }
 
 async fn update_friendship_event(
-    module: &FriendshipsServiceClient<WebSocketTransport>,
+    module: &FriendshipsServiceClient<Transport>,
     token: &str,
     body: friendship_event_payload::Body,
 ) {
@@ -215,7 +215,7 @@ async fn main() {
     let port = client.create_port("friendships").await.unwrap();
 
     let module = port
-        .load_module::<FriendshipsServiceClient<WebSocketTransport>>("FriendshipsService")
+    .load_module::<FriendshipsServiceClient<Transport>>("FriendshipsService")
         .await
         .unwrap();
 
