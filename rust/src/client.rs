@@ -62,7 +62,6 @@ impl Flow {
                 accept(module, &user_b.token, &user_a.address).await;
                 delete(module, &user_a.token, &user_b.address).await;
             }
-            _ => {} // Do nothing for other cases
         }
     }
 }
@@ -262,6 +261,6 @@ async fn main() {
     if let Some(flow) = flow {
         flow.execute(&module, user_a, user_b).await;
     } else {
-        // Doing nothing
+        // Do nothing
     }
 }
