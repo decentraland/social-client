@@ -1,7 +1,5 @@
-use dcl_rpc::{
-    client::RpcClient,
-    transports::web_socket::{WebSocketClient, WebSocketTransport},
-};
+use dcl_rpc::transports::web_sockets::tungstenite::{TungsteniteWebSocket, WebSocketClient};
+use dcl_rpc::{client::RpcClient, transports::web_sockets::WebSocketTransport};
 use social_client::{credentials::load_users, FriendshipsServiceClientDefinition};
 use social_client::{FriendshipsServiceClient, Payload};
 
@@ -23,7 +21,9 @@ async fn main() {
     let port = client.create_port("friendships").await.unwrap();
 
     let module = port
-        .load_module::<FriendshipsServiceClient<WebSocketTransport>>("FriendshipsService")
+        .load_module::<FriendshipsServiceClient<WebSocketTransport<TungsteniteWebSocket, ()>>>(
+            "FriendshipsService",
+        )
         .await
         .unwrap();
 
