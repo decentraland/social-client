@@ -1,16 +1,16 @@
-use std::{env, time::Duration};
+use dcl_rpc::transports::web_sockets::tungstenite::WebSocketClient;
 use dcl_rpc::{
     client::RpcClient,
     transports::web_sockets::{tungstenite::TungsteniteWebSocket, WebSocketTransport},
 };
-use tokio::time::sleep;
-use dcl_rpc::transports::web_sockets::tungstenite::WebSocketClient;
 use social_client::{
     credentials::{load_users, AuthUser},
     friendship_event_payload, AcceptPayload, CancelPayload, DeletePayload, FriendshipEventPayload,
     FriendshipsServiceClient, FriendshipsServiceClientDefinition, Payload, RejectPayload,
     RequestPayload, UpdateFriendshipPayload, User,
 };
+use std::{env, time::Duration};
+use tokio::time::sleep;
 
 type Transport = WebSocketTransport<TungsteniteWebSocket, ()>;
 
@@ -66,11 +66,7 @@ impl Flow {
     }
 }
 
-async fn request(
-    module: &FriendshipsServiceClient<Transport>,
-    token: &str,
-    user_address: &str,
-) {
+async fn request(module: &FriendshipsServiceClient<Transport>, token: &str, user_address: &str) {
     let request_payload = RequestPayload {
         user: Some(User {
             address: user_address.to_string(),
@@ -86,11 +82,7 @@ async fn request(
     .await;
 }
 
-async fn cancel(
-    module: &FriendshipsServiceClient<Transport>,
-    token: &str,
-    user_address: &str,
-) {
+async fn cancel(module: &FriendshipsServiceClient<Transport>, token: &str, user_address: &str) {
     let cancel_payload = CancelPayload {
         user: Some(User {
             address: user_address.to_string(),
@@ -105,11 +97,7 @@ async fn cancel(
     .await;
 }
 
-async fn accept(
-    module: &FriendshipsServiceClient<Transport>,
-    token: &str,
-    user_address: &str,
-) {
+async fn accept(module: &FriendshipsServiceClient<Transport>, token: &str, user_address: &str) {
     let accept_payload = AcceptPayload {
         user: Some(User {
             address: user_address.to_string(),
@@ -124,11 +112,7 @@ async fn accept(
     .await;
 }
 
-async fn reject(
-    module: &FriendshipsServiceClient<Transport>,
-    token: &str,
-    user_address: &str,
-) {
+async fn reject(module: &FriendshipsServiceClient<Transport>, token: &str, user_address: &str) {
     let reject_payload = RejectPayload {
         user: Some(User {
             address: user_address.to_string(),
@@ -143,11 +127,7 @@ async fn reject(
     .await;
 }
 
-async fn delete(
-    module: &FriendshipsServiceClient<Transport>,
-    token: &str,
-    user_address: &str,
-) {
+async fn delete(module: &FriendshipsServiceClient<Transport>, token: &str, user_address: &str) {
     let delete_payload = DeletePayload {
         user: Some(User {
             address: user_address.to_string(),
@@ -206,61 +186,71 @@ async fn main() {
     let host = "wss://rpc-social-service.decentraland.zone";
     // let host = "ws://127.0.0.1:8085";
 
-    let client_connection = WebSocketClient::connect(host).await.unwrap();
+    loop {
+        match WebSocketClient::connect(host).await {
+            Ok(client_connection) => {
+                let client_transport = WebSocketTransport::new(client_connection);
 
-    let client_transport = WebSocketTransport::new(client_connection);
+                let mut client = RpcClient::new(client_transport).await.unwrap();
 
-    let mut client = RpcClient::new(client_transport).await.unwrap();
+                let port = client.create_port("friendships").await.unwrap();
 
-    let port = client.create_port("friendships").await.unwrap();
+                let module = port
+                    .load_module::<FriendshipsServiceClient<Transport>>("FriendshipsService")
+                    .await
+                    .unwrap();
 
-    let module = port
-    .load_module::<FriendshipsServiceClient<Transport>>("FriendshipsService")
-        .await
-        .unwrap();
+                // 1. Get Friends message
+                let friends_response = module
+                    .get_friends(Payload {
+                        synapse_token: Some(user_a.clone().token),
+                    })
+                    .await;
+                match friends_response {
+                    Ok(mut friends_response) => {
+                        println!("> Server Streams > Response > GetAllFriendsResponse");
+                        while let Some(friend) = friends_response.next().await {
+                            println!(
+                                "> Server Streams > Response > GetAllFriendsResponse {:?}",
+                                friend.response
+                            )
+                        }
+                    }
+                    Err(err) => {
+                        panic!("{err:?}")
+                    }
+                }
 
-    // 1. Get Friends message
-    let friends_response = module
-        .get_friends(Payload {
-            synapse_token: Some(user_a.clone().token),
-        })
-        .await;
-    match friends_response {
-        Ok(mut friends_response) => {
-            println!("> Server Streams > Response > GetAllFriendsResponse");
-            while let Some(friend) = friends_response.next().await {
-                println!(
-                    "> Server Streams > Response > GetAllFriendsResponse {:?}",
-                    friend.response
-                )
+                // 2. Get Requests Events message
+                let friendship_request_events = module
+                    .get_request_events(Payload {
+                        synapse_token: Some(user_a.clone().token),
+                    })
+                    .await;
+                match friendship_request_events {
+                    Ok(friendship_request_events) => {
+                        println!(
+                        "> Server Unary > Response > GetRequestsResponse {friendship_request_events:?}"
+                    );
+                    }
+                    Err(err) => {
+                        panic!("{err:?}");
+                    }
+                }
+
+                // 3. Update Friendship Events message
+                if let Some(flow) = flow {
+                    flow.execute(&module, user_a, user_b).await;
+                } else {
+                    // Do nothing
+                }
+
+                break;
+            }
+            Err(_) => {
+                println!("Failed to connect, retrying in 5 seconds...");
+                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
             }
         }
-        Err(err) => {
-            panic!("{err:?}")
-        }
-    }
-
-    // 2. Get Requests Events message
-    let friendship_request_events = module
-        .get_request_events(Payload {
-            synapse_token: Some(user_a.clone().token),
-        })
-        .await;
-    match friendship_request_events {
-        Ok(friendship_request_events) => {
-            println!(
-                "> Server Unary > Response > GetRequestsResponse {friendship_request_events:?}"
-            );
-        }
-        Err(err) => {
-            panic!("{err:?}");
-        }
-    }
-
-    // 3. Update Friendship Events message
-    if let Some(flow) = flow {
-        flow.execute(&module, user_a, user_b).await;
-    } else {
-        // Do nothing
     }
 }
