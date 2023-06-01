@@ -23,8 +23,11 @@ async fn handle_connection(host: &str, token: &str) {
         match WebSocketClient::connect(host).await {
             Ok(client_connection) => {
                 let client_transport = WebSocketTransport::new(client_connection.clone());
+
                 let mut client = RpcClient::new(client_transport).await.unwrap();
+
                 let port = client.create_port("friendships").await.unwrap();
+
                 let module = port
                   .load_module::<FriendshipsServiceClient<WebSocketTransport<TungsteniteWebSocket, ()>>>(
                       "FriendshipsService",
@@ -42,25 +45,17 @@ async fn handle_connection(host: &str, token: &str) {
                 .await;
 
                 match updates_response {
-                    Ok(Ok(mut u)) => loop {
-                        let update =
+                    Ok(Ok(mut u)) => {
+                        while let Ok(Some(update)) =
                             tokio::time::timeout(tokio::time::Duration::from_secs(10), u.next())
-                                .await;
-                        match update {
-                            Ok(Some(update)) => {
-                                println!(
-                                    "> Server Streams > Response > Notifications {:?}",
-                                    update
-                                );
-                            }
-                            Ok(None) | Err(_) => {
-                                println!("Timeout when waiting for response, reconnecting...");
-                                break;
-                            }
+                                .await
+                        {
+                            println!("> Server Streams > Response > Notifications {update:?}");
                         }
-                    },
+                        println!("Timeout when waiting for response, reconnecting...");
+                    }
                     Ok(Err(err)) => {
-                        println!("Error handling connection: {:?}, reconnecting...", err);
+                        println!("Error handling connection: {err:?}, reconnecting...");
                         break;
                     }
                     Err(_) => {
@@ -71,7 +66,7 @@ async fn handle_connection(host: &str, token: &str) {
             }
             Err(err) => {
                 println!("Failed to connect, retrying in 5 seconds...");
-                println!("Error: {:?}", err);
+                println!("Error: {err:?}");
                 tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
             }
         }

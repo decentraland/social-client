@@ -1,4 +1,5 @@
 use dcl_rpc::transports::web_sockets::tungstenite::WebSocketClient;
+use dcl_rpc::transports::web_sockets::WebSocket;
 use dcl_rpc::{
     client::RpcClient,
     transports::web_sockets::{tungstenite::TungsteniteWebSocket, WebSocketTransport},
@@ -15,6 +16,7 @@ use tokio::time::sleep;
 type Transport = WebSocketTransport<TungsteniteWebSocket, ()>;
 
 // Define different flows
+#[derive(Clone)]
 enum Flow {
     Flow1,
     Flow2,
@@ -183,13 +185,20 @@ async fn main() {
     // Auth Users
     let (user_a, user_b) = load_users().await;
 
-    let host = "wss://rpc-social-service.decentraland.zone";
-    // let host = "ws://127.0.0.1:8085";
+    // let host = "wss://rpc-social-service.decentraland.org";
+    // let host = "wss://rpc-social-service.decentraland.org";
+    let host = "ws://127.0.0.1:8085";
 
+    loop {
+        handle_connection(host, user_a.clone(), user_b.clone(), flow.clone()).await;
+    }
+}
+
+async fn handle_connection(host: &str, user_a: AuthUser, user_b: AuthUser, flow: Option<Flow>) {
     loop {
         match WebSocketClient::connect(host).await {
             Ok(client_connection) => {
-                let client_transport = WebSocketTransport::new(client_connection);
+                let client_transport = WebSocketTransport::new(client_connection.clone());
 
                 let mut client = RpcClient::new(client_transport).await.unwrap();
 
@@ -208,7 +217,10 @@ async fn main() {
                     .await;
                 match friends_response {
                     Ok(mut friends_response) => {
-                        println!("> Server Streams > Response > GetAllFriendsResponse");
+                        println!(
+                            "> Server Streams > Response > GetAllFriendsResponse for {:?}",
+                            user_a.clone().address
+                        );
                         while let Some(friend) = friends_response.next().await {
                             println!(
                                 "> Server Streams > Response > GetAllFriendsResponse {:?}",
@@ -230,7 +242,7 @@ async fn main() {
                 match friendship_request_events {
                     Ok(friendship_request_events) => {
                         println!(
-                        "> Server Unary > Response > GetRequestsResponse {friendship_request_events:?}"
+                        "> Server Unary > Response > GetRequestsResponse for {:?}: {friendship_request_events:?}", user_a.clone().address
                     );
                     }
                     Err(err) => {
@@ -244,6 +256,11 @@ async fn main() {
                 } else {
                     // Do nothing
                 }
+
+                client_connection
+                    .clone()
+                    .ping_every(Duration::from_secs(30))
+                    .await;
 
                 break;
             }
