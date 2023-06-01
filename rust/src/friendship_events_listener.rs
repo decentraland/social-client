@@ -3,6 +3,8 @@ use dcl_rpc::{client::RpcClient, transports::web_sockets::WebSocketTransport};
 use social_client::{credentials::load_users, FriendshipsServiceClientDefinition};
 use social_client::{FriendshipsServiceClient, Payload};
 
+const RECONNECT_DELAY: u64 = 5; // seconds
+
 #[tokio::main]
 async fn main() {
     // Auth Users
@@ -37,7 +39,7 @@ async fn handle_connection(host: &str, token: &str) {
 
                 // 4. Listen to updates to my address
                 let updates_response = tokio::time::timeout(
-                    tokio::time::Duration::from_secs(10),
+                    tokio::time::Duration::from_secs(RECONNECT_DELAY),
                     module.subscribe_friendship_events_updates(Payload {
                         synapse_token: Some(token.to_string()),
                     }),
@@ -46,20 +48,18 @@ async fn handle_connection(host: &str, token: &str) {
                 match updates_response {
                     Ok(Ok(mut u)) => {
                         println!("> Server Streams > Response > Notifications");
-                        while let Ok(Some(update)) =
-                            tokio::time::timeout(tokio::time::Duration::from_secs(10), u.next())
-                                .await
+                        while let Ok(Some(update)) = tokio::time::timeout(
+                            tokio::time::Duration::from_secs(RECONNECT_DELAY),
+                            u.next(),
+                        )
+                        .await
                         {
                             println!("> Server Streams > Response > Notifications {update:?}");
                         }
                         println!("Timeout when waiting for response, reconnecting...");
                     }
-                    Ok(Err(err)) => {
-                        println!("Error handling connection: {err:?}, reconnecting...");
-                        break;
-                    }
-                    Err(_) => {
-                        println!("Timeout when waiting for response, reconnecting...");
+                    _ => {
+                        println!("Error with the connection, reconnecting...");
                         break;
                     }
                 }
@@ -67,7 +67,7 @@ async fn handle_connection(host: &str, token: &str) {
             Err(err) => {
                 println!("Failed to connect, retrying in 5 seconds...");
                 println!("Error: {err:?}");
-                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                tokio::time::sleep(tokio::time::Duration::from_secs(RECONNECT_DELAY)).await;
             }
         }
     }

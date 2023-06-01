@@ -6,9 +6,9 @@ A Websocket client implemented in Rust, using [dcl-rpc](https://crates.io/crates
 
 To avoid entering the credentials every time you run the script you can add the credentials.json file (a template is at credentials.example.json)
 
-### Client A: Executor
+### Friendship Operations Executor
 
-This is the executor of the actions, gets all friends and requests and then performs actions based on the specified flow.
+This is the executor of the friendship interactions. It retrieves all friends and friendship requests, and then performs operations based on the specified flow.
 
 There are 4 available flows:
 
@@ -19,14 +19,14 @@ There are 4 available flows:
 
 You can specify the flow to execute as a command-line argument. Here's how to run the client with each flow:
 
-`cargo run --bin a-client-ws -- flow{{number}}`
+`cargo run --bin friendship_procedures_executor -- flow{{number}}`
 
 If no flow is specified, the program will panic with a message indicating that a flow must be provided.
 
-### Client B: Listener
+### Friendship Events Listener
 
-This client only subscribes to new friendship event updates and receives the updates from Client A.
-`cargo run --bin b-client-ws`
+This client only subscribes to new friendship events updates and receives the updates from one of the clients of the Friendship Operations Executor.
+`cargo run --bin friendship_events_listener`
 
 ---
 

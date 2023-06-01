@@ -1,5 +1,5 @@
 pub mod credentials;
-pub mod friendship_flow;
+pub mod friendship_procedures;
 
 include!(concat!(
     env!("OUT_DIR"),

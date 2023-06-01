@@ -21,6 +21,7 @@ pub enum Flow {
 }
 
 impl Flow {
+    /// Get the flow from a string.
     pub fn from_str(s: &str) -> Option<Flow> {
         match s {
             "flow1" => Some(Flow::Flow1),
@@ -31,34 +32,37 @@ impl Flow {
         }
     }
 
+    /// Execute the flow with the given users and module clients for A and B respectively.
+    /// Executing a flow means sending friendship event updates to the server.
     pub async fn execute(
         &self,
-        module: &FriendshipsServiceClient<Transport>,
+        module_a: &FriendshipsServiceClient<Transport>,
+        module_b: &FriendshipsServiceClient<Transport>,
         user_a: AuthUser,
         user_b: AuthUser,
     ) {
         match self {
             Flow::Flow1 => {
                 // Implement Flow 1: Request A-B, Cancel A-B
-                request(module, &user_a.token, &user_b.address).await;
-                cancel(module, &user_a.token, &user_b.address).await;
+                request(module_a, &user_a.token, &user_b.address).await;
+                cancel(module_a, &user_a.token, &user_b.address).await;
             }
             Flow::Flow2 => {
                 // Implement Flow 2: Request A-B, Accept B-A, Delete A-B
-                request(module, &user_a.token, &user_b.address).await;
-                accept(module, &user_b.token, &user_a.address).await;
-                delete(module, &user_a.token, &user_b.address).await;
+                request(module_a, &user_a.token, &user_b.address).await;
+                accept(module_b, &user_b.token, &user_a.address).await;
+                delete(module_a, &user_a.token, &user_b.address).await;
             }
             Flow::Flow3 => {
                 // Implement Flow 3: Request A-B, Reject B-A
-                request(module, &user_a.token, &user_b.address).await;
-                reject(module, &user_b.token, &user_a.address).await;
+                request(module_a, &user_a.token, &user_b.address).await;
+                reject(module_b, &user_b.token, &user_a.address).await;
             }
             Flow::Flow4 => {
                 // Implement Flow 4: Request A-B, Accept B-A, Delete B-A
-                request(module, &user_a.token, &user_b.address).await;
-                accept(module, &user_b.token, &user_a.address).await;
-                delete(module, &user_b.token, &user_a.address).await;
+                request(module_a, &user_a.token, &user_b.address).await;
+                accept(module_b, &user_b.token, &user_a.address).await;
+                delete(module_b, &user_b.token, &user_a.address).await;
             }
         }
     }
@@ -140,6 +144,7 @@ async fn delete(module: &FriendshipsServiceClient<Transport>, token: &str, user_
     .await;
 }
 
+/// Update the friendship event of the given user using the given module client.
 async fn update_friendship_event(
     module: &FriendshipsServiceClient<Transport>,
     token: &str,
@@ -165,4 +170,51 @@ async fn update_friendship_event(
 
     // The state resolution from synapse takes some time
     sleep(Duration::from_secs(5)).await;
+}
+
+/// Get and print the friends of the given user using the given module client.
+pub async fn get_friends(module: &FriendshipsServiceClient<Transport>, user: &AuthUser) {
+    let friends_response = module
+        .get_friends(Payload {
+            synapse_token: Some(user.clone().token),
+        })
+        .await;
+    match friends_response {
+        Ok(mut friends_response) => {
+            println!(
+                "> Server Streams > Response > GetAllFriendsResponse for {:?}",
+                user.clone().address
+            );
+            while let Some(friend) = friends_response.next().await {
+                println!(
+                    "> Server Streams > Response > GetAllFriendsResponse {:?}",
+                    friend.response
+                )
+            }
+        }
+        Err(err) => {
+            panic!("{err:?}")
+        }
+    }
+}
+
+/// Get and print the friendship request events of the given user using the given module client.
+pub async fn get_request_events(module: &FriendshipsServiceClient<Transport>, user: &AuthUser) {
+    let friendship_request_events = module
+        .get_request_events(Payload {
+            synapse_token: Some(user.clone().token),
+        })
+        .await;
+    match friendship_request_events {
+        Ok(friendship_request_events) => {
+            println!(
+                "> Server Unary > Response > GetRequestsResponse for {:?}: {:?}",
+                user.clone().address,
+                friendship_request_events
+            );
+        }
+        Err(err) => {
+            panic!("{err:?}");
+        }
+    }
 }
