@@ -10,52 +10,68 @@ async fn main() {
 
     let token = user_b.token;
 
-    // let host = "wss://rpc-social-service.decentraland.zone";
-    let host = "ws://127.0.0.1:8085";
+    // let host = "wss://rpc-social-service.decentraland.org";
+    let host = "ws://localhost:8085";
 
+    loop {
+        handle_connection(host, &token).await;
+    }
+}
+
+async fn handle_connection(host: &str, token: &str) {
     loop {
         match WebSocketClient::connect(host).await {
             Ok(client_connection) => {
-                let client_transport = WebSocketTransport::new(client_connection);
-
+                let client_transport = WebSocketTransport::new(client_connection.clone());
                 let mut client = RpcClient::new(client_transport).await.unwrap();
-
                 let port = client.create_port("friendships").await.unwrap();
-
                 let module = port
-              .load_module::<FriendshipsServiceClient<WebSocketTransport<TungsteniteWebSocket, ()>>>(
-                  "FriendshipsService",
-              ).await
-              .unwrap();
+                  .load_module::<FriendshipsServiceClient<WebSocketTransport<TungsteniteWebSocket, ()>>>(
+                      "FriendshipsService",
+                  )
+                  .await
+                  .unwrap();
 
                 // 4. Listen to updates to my address
-                let updates_response = module
-                    .subscribe_friendship_events_updates(Payload {
+                let updates_response = tokio::time::timeout(
+                    tokio::time::Duration::from_secs(10),
+                    module.subscribe_friendship_events_updates(Payload {
                         synapse_token: Some(token.to_string()),
-                    })
-                    .await;
+                    }),
+                )
+                .await;
+
                 match updates_response {
-                    Ok(mut u) => loop {
-                        match u.next().await {
-                            Some(update) => {
+                    Ok(Ok(mut u)) => loop {
+                        let update =
+                            tokio::time::timeout(tokio::time::Duration::from_secs(10), u.next())
+                                .await;
+                        match update {
+                            Ok(Some(update)) => {
                                 println!(
                                     "> Server Streams > Response > Notifications {:?}",
                                     update
                                 );
                             }
-                            None => {
-                                println!("Connection was closed by server, reconnecting...");
+                            Ok(None) | Err(_) => {
+                                println!("Timeout when waiting for response, reconnecting...");
                                 break;
                             }
                         }
                     },
-                    Err(err) => {
+                    Ok(Err(err)) => {
                         println!("Error handling connection: {:?}, reconnecting...", err);
+                        break;
+                    }
+                    Err(_) => {
+                        println!("Timeout when waiting for response, reconnecting...");
+                        break;
                     }
                 }
             }
-            Err(_) => {
+            Err(err) => {
                 println!("Failed to connect, retrying in 5 seconds...");
+                println!("Error: {:?}", err);
                 tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
             }
         }
