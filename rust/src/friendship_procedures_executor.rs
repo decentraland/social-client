@@ -9,7 +9,7 @@ use std::env;
 
 type Transport = WebSocketTransport<TungsteniteWebSocket, ()>;
 
-const RECONNECT_DELAY: u64 = 5; // seconds
+const RECONNECT_DELAY: u64 = 10; // seconds
 
 #[tokio::main]
 async fn main() {
@@ -25,50 +25,52 @@ async fn main() {
     // Auth Users
     let (user_a, user_b) = load_users().await;
 
-    // let host = "wss://rpc-social-service.decentraland.org";
-    // let host = "wss://rpc-social-service.decentraland.org";
-    let host = "ws://127.0.0.1:8085";
+    let host_a = "ws://127.0.0.1:8085";
+    let host_b = "ws://127.0.0.1:8086";
+    // let host_a = "wss://rpc-social-service.decentraland.zone";
 
-    match (
-        WebSocketClient::connect(host).await,
-        WebSocketClient::connect(host).await,
-    ) {
-        (Ok(client_connection_a), Ok(client_connection_b)) => {
-            let client_transport_a = WebSocketTransport::new(client_connection_a.clone());
-            let client_transport_b = WebSocketTransport::new(client_connection_b.clone());
+    loop {
+        match (
+            WebSocketClient::connect(host_a).await,
+            WebSocketClient::connect(host_b).await,
+        ) {
+            (Ok(client_connection_a), Ok(client_connection_b)) => {
+                let client_transport_a = WebSocketTransport::new(client_connection_a.clone());
+                let client_transport_b = WebSocketTransport::new(client_connection_b.clone());
 
-            let mut client_a = RpcClient::new(client_transport_a).await.unwrap();
-            let mut client_b = RpcClient::new(client_transport_b).await.unwrap();
+                let mut client_a = RpcClient::new(client_transport_a).await.unwrap();
+                let mut client_b = RpcClient::new(client_transport_b).await.unwrap();
 
-            let port_a = client_a.create_port("friendships").await.unwrap();
-            let port_b = client_b.create_port("friendships").await.unwrap();
+                let port_a = client_a.create_port("friendships").await.unwrap();
+                let port_b = client_b.create_port("friendships").await.unwrap();
 
-            let module_a = port_a
-                .load_module::<FriendshipsServiceClient<Transport>>("FriendshipsService")
-                .await
-                .unwrap();
-            let module_b = port_b
-                .load_module::<FriendshipsServiceClient<Transport>>("FriendshipsService")
-                .await
-                .unwrap();
+                let module_a = port_a
+                    .load_module::<FriendshipsServiceClient<Transport>>("FriendshipsService")
+                    .await
+                    .unwrap();
+                let module_b = port_b
+                    .load_module::<FriendshipsServiceClient<Transport>>("FriendshipsService")
+                    .await
+                    .unwrap();
 
-            // 1. Get Friends message
-            get_friends(&module_a, &user_a).await;
+                // 1. Get Friends message
+                get_friends(&module_a, &user_a).await;
 
-            // 2. Get Friendship Request Events message
-            get_request_events(&module_a, &user_a).await;
+                // 2. Get Friendship Request Events message
+                get_request_events(&module_a, &user_a).await;
 
-            // 3. Update Friendship Events message
-            if let Some(flow) = flow.clone() {
-                flow.execute(&module_a, &module_b, user_a.clone(), user_b.clone())
-                    .await;
-            } else {
-                // Do nothing
+                // 3. Update Friendship Events message
+                if let Some(flow) = flow.clone() {
+                    flow.execute(&module_a, &module_b, user_a.clone(), user_b.clone())
+                        .await;
+                } else {
+                    // Do nothing
+                }
             }
-        }
-        _ => {
-            println!("Failed to connect, retrying in 5 seconds...");
-            tokio::time::sleep(tokio::time::Duration::from_secs(RECONNECT_DELAY)).await;
+            _ => {
+                println!("Failed to connect, retrying in {RECONNECT_DELAY} seconds...");
+                tokio::time::sleep(tokio::time::Duration::from_secs(RECONNECT_DELAY)).await;
+            }
         }
     }
 }

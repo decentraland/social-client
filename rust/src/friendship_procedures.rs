@@ -11,6 +11,8 @@ use crate::{
 
 type Transport = WebSocketTransport<TungsteniteWebSocket, ()>;
 
+const DELAY: u64 = 5; // seconds
+
 // Define different flows
 #[derive(Clone)]
 pub enum Flow {
@@ -169,7 +171,7 @@ async fn update_friendship_event(
     }
 
     // The state resolution from synapse takes some time
-    sleep(Duration::from_secs(5)).await;
+    sleep(Duration::from_secs(DELAY)).await;
 }
 
 /// Get and print the friends of the given user using the given module client.
