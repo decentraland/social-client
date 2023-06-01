@@ -1,4 +1,5 @@
 pub mod credentials;
+pub mod friendship_flow;
 
 include!(concat!(
     env!("OUT_DIR"),

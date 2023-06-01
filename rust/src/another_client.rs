@@ -43,9 +43,9 @@ async fn handle_connection(host: &str, token: &str) {
                     }),
                 )
                 .await;
-
                 match updates_response {
                     Ok(Ok(mut u)) => {
+                        println!("> Server Streams > Response > Notifications");
                         while let Ok(Some(update)) =
                             tokio::time::timeout(tokio::time::Duration::from_secs(10), u.next())
                                 .await
