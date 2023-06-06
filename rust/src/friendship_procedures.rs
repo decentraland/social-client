@@ -236,11 +236,12 @@ pub async fn get_friends(module: &FriendshipsServiceClient<Transport>, user: &Au
         Ok(mut friends_response) => {
             println!(
                 "> Server Streams > Response > GetAllFriendsResponse for {:?}",
-                user.clone().address
+                &user.clone().address[user.address.len() - 4..]
             );
             while let Some(friend) = friends_response.next().await {
                 println!(
-                    "> Server Streams > Response > GetAllFriendsResponse {:?}",
+                    "> Server Streams > Response > GetAllFriendsResponse for {:?}: {:?}",
+                    &user.clone().address[user.address.len() - 4..],
                     friend.response
                 )
             }
@@ -262,7 +263,7 @@ pub async fn get_request_events(module: &FriendshipsServiceClient<Transport>, us
         Ok(friendship_request_events) => {
             println!(
                 "> Server Unary > Response > GetRequestsResponse for {:?}: {:?}",
-                user.clone().address,
+                &user.clone().address[user.address.len() - 4..],
                 friendship_request_events
             );
         }

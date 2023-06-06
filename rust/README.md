@@ -8,7 +8,7 @@ To avoid entering the credentials every time you run the script you can add the 
 
 ### Friendship Procedures Executor
 
-This application launches two clients, each client is associated with a different user and independently performs operations specific to that user based on the specified flow.
+This application launches two clients, each client is associated with a different user and independently performs operations specific to that user based on the specified flow. Aditionally, it will print the friends and pending friendship requests of each user.
 
 There are 4 available flows:
 
