@@ -1,0 +1,94 @@
+use std::{
+    thread::sleep,
+    time::{Duration, Instant},
+};
+
+use async_trait::async_trait;
+use clap::Parser;
+use dcl_rpc::client::RpcClient;
+use log::{debug, info};
+use social_client::{
+    benchmark_args::Args,
+    benchmark_client::{handle_client, TestWebSocketTransport},
+    benchmark_simulation::{Client, Context, Simulation},
+};
+
+#[tokio::main]
+async fn main() {
+    use env_logger::init as initialize_logger;
+    initialize_logger();
+    let args = Args::parse();
+
+    let test_elapsed_time = Instant::now();
+    let mut set = tokio::task::JoinSet::new();
+
+    let mut whole_conns = vec![];
+    let mut client_conns = vec![];
+    let mut rpc_clients = vec![];
+
+    for i in 0..args.clients {
+        set.spawn(handle_client(args.clone()));
+        if (i + 1) % args.parallel as usize == 0 {
+            while let Some(res) = set.join_next().await {
+                match res.unwrap() {
+                    Ok((client, whole_conn, client_conn)) => {
+                        rpc_clients.push(client);
+                        whole_conns.push(whole_conn);
+                        client_conns.push(client_conn);
+
+                        info!("Connected clients: {}", rpc_clients.len());
+                    }
+                    Err(e) => {
+                        debug!("Couldn't create client: {e:?}");
+                        info!("Ending test as clients can't connect to server");
+                        return;
+                    }
+                }
+            }
+            sleep(Duration::from_millis(500));
+        }
+    }
+
+    let test_elapsed_time = test_elapsed_time.elapsed().as_secs();
+    let mean_whole = mean(&whole_conns);
+    let mean_client_conns = mean(&client_conns);
+
+    info!("Clients Creation >");
+    info!("\nCurrent test duration: {} secs", test_elapsed_time);
+    info!("\nEntire Connection (mean) {mean_whole} ms");
+    info!("\nClient Connection (mean) {mean_client_conns} ms");
+
+    info!(
+        "\nSimulation > Started and will run for {} minutes...",
+        args.duration
+    );
+    Simulation::run::<TestContext, TestClient>(&args, rpc_clients).await;
+    info!("\nSimulation > Completed");
+}
+
+pub fn mean(values: &[u128]) -> u128 {
+    values.iter().sum::<u128>() / values.len() as u128
+}
+
+struct TestContext;
+struct TestClient {
+    _client: RpcClient<TestWebSocketTransport>,
+}
+
+#[async_trait]
+impl Context for TestContext {
+    async fn init(_args: &Args) -> Self {
+        Self {}
+    }
+}
+
+#[async_trait]
+impl Client<TestContext> for TestClient {
+    async fn from_rpc_client(_client: RpcClient<TestWebSocketTransport>) -> Self {
+        Self { _client }
+    }
+
+    async fn act(mut self, _context: &TestContext) -> Self {
+        self
+    }
+}
