@@ -35,6 +35,8 @@ This command will start the event listeners for both users. They will connect to
 
 Each application launches a client, each client is associated with a different user and independently performs operations specific to that user interacting with the other user. It's similar to the Friendship Procedures Executor, but it's not automated and it's thought to be used for manual testing against the bastion.
 
+Note that before running the clients, you need to revise the code to check the feseability of the operations you want to perform and calculate the order and time in which they need to be executed.
+
 To run the each program, use the following commands (in separate terminals) in that order:
 
 `cargo run --bin client_a`
