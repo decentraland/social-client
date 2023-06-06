@@ -21,7 +21,7 @@ You can specify the flow to execute as a command-line argument. Here's how to ru
 
 `cargo run --bin friendship_procedures_executor -- flow{{number}}`
 
-If no flow is specified, the program will panic with a message indicating that a flow must be provided.
+If no flow is specified, the program won't perform any flow operations.
 
 ### Friendship Events Listener
 
