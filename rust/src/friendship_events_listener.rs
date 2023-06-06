@@ -6,6 +6,8 @@ use social_client::{FriendshipsServiceClient, Payload};
 const RECONNECT_DELAY: u64 = 10; // seconds
 const TIMEOUT_RESPONSE: u64 = 20; // seconds
 
+type Transport = WebSocketTransport<TungsteniteWebSocket, ()>;
+
 #[tokio::main]
 async fn main() {
     // Auth Users
@@ -44,11 +46,9 @@ async fn handle_connection(host: &str, token: &str, which: &str) {
                 let port = client.create_port("friendships").await.unwrap();
 
                 let module = port
-                  .load_module::<FriendshipsServiceClient<WebSocketTransport<TungsteniteWebSocket, ()>>>(
-                      "FriendshipsService",
-                  )
-                  .await
-                  .unwrap();
+                    .load_module::<FriendshipsServiceClient<Transport>>("FriendshipsService")
+                    .await
+                    .unwrap();
 
                 // 4. Listen to updates to my address
                 let updates_response = tokio::time::timeout(

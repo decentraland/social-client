@@ -31,7 +31,7 @@ async fn main() {
                     .await
                     .unwrap();
 
-                println!("Running Client A");
+                println!("Running Client A...");
 
                 println!("Sending request to Client B...");
                 let request = Flow::Request;

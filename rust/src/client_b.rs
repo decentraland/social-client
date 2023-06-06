@@ -33,7 +33,7 @@ async fn main() {
 
                 println!("Running Client B...");
 
-                println!("Accepting request...");
+                println!("Accepting request from Client A...");
                 let accept = Flow::Accept;
                 accept
                     .execute_event(&module, user_a.clone(), user_b.clone())
@@ -42,7 +42,7 @@ async fn main() {
                 println!("Waiting for Client A to delete the friendship...");
                 tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
 
-                println!("Waiting for Client A to sending a request and canceling it...");
+                println!("Waiting for Client A to send a friendship request and cancel it...");
                 tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
 
                 break;
