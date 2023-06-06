@@ -53,14 +53,14 @@ pub async fn extract_user(user: &serde_json::Value, user_id: &str) -> AuthUser {
     let address = match user["address"].as_str() {
         Some(address) => address.to_string(),
         None => {
-            let message = format!("Enter address for User {}: ", user_id);
+            let message = format!("Enter address for User {user_id}");
             get_input(&message).await.unwrap()
         }
     };
     let token = match user["token"].as_str() {
         Some(token) => token.to_string(),
         None => {
-            let message = format!("Enter token for User {}: ", user_id);
+            let message = format!("Enter token for User {user_id}");
             get_input(&message).await.unwrap()
         }
     };
