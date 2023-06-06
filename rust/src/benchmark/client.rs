@@ -1,14 +1,14 @@
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use dcl_rpc::{
     client::RpcClient,
     transports::web_sockets::{
         tungstenite::{TungsteniteWebSocket, WebSocketClient},
-        WebSocketTransport,
+        WebSocket, WebSocketTransport,
     },
 };
 
-use crate::benchmark_args::Args;
+use super::args::Args;
 
 pub type TestWebSocketTransport = WebSocketTransport<TungsteniteWebSocket, ()>;
 
@@ -29,6 +29,7 @@ pub async fn handle_client(
         ClientCreationError::Connection
     })?;
 
+    ws.clone().ping_every(Duration::from_secs(30)).await;
     let transport = WebSocketTransport::new(ws);
 
     let client_connection = Instant::now();

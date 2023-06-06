@@ -3,18 +3,18 @@ use std::{
     time::{Duration, Instant},
 };
 
-use async_trait::async_trait;
 use clap::Parser;
-use dcl_rpc::client::RpcClient;
 use log::{debug, info};
-use social_client::{
-    benchmark_args::Args,
-    benchmark_client::{handle_client, TestWebSocketTransport},
-    benchmark_simulation::{Client, Context, Simulation},
+use social_client::benchmark::{
+    args::Args,
+    client::handle_client,
+    friendship_service_simulation::{TestClient, TestContext},
+    simulation::Simulation,
 };
 
 #[tokio::main]
 async fn main() {
+    std::env::set_var("RUST_LOG", "info");
     use env_logger::init as initialize_logger;
     initialize_logger();
     let args = Args::parse();
@@ -68,27 +68,4 @@ async fn main() {
 
 pub fn mean(values: &[u128]) -> u128 {
     values.iter().sum::<u128>() / values.len() as u128
-}
-
-struct TestContext;
-struct TestClient {
-    _client: RpcClient<TestWebSocketTransport>,
-}
-
-#[async_trait]
-impl Context for TestContext {
-    async fn init(_args: &Args) -> Self {
-        Self {}
-    }
-}
-
-#[async_trait]
-impl Client<TestContext> for TestClient {
-    async fn from_rpc_client(_client: RpcClient<TestWebSocketTransport>) -> Self {
-        Self { _client }
-    }
-
-    async fn act(mut self, _context: &TestContext) -> Self {
-        self
-    }
 }

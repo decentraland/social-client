@@ -1,8 +1,6 @@
-pub mod benchmark_args;
-pub mod benchmark_client;
+pub mod benchmark;
 pub mod credentials;
 pub mod friendship_procedures;
-pub mod benchmark_simulation;
 
 include!(concat!(
     env!("OUT_DIR"),

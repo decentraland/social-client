@@ -15,13 +15,13 @@ rand = "0.8.5"
 futures-channel = "0.3"
 futures-util = {version = "0.3", default-features = false, features = ["sink", "std"]}
 log = "0.4.17"
+env_logger = "0.10.0"
 tokio = {version = "1.0.0", default-features = false, features = ["io-util", "io-std", "macros", "net", "rt-multi-thread", "time", "sync"]}
 tokio-tungstenite = "*"
 tokio-util = "0.7.4"
 rcgen = "0.10.0"
 serde_json = "1.0.89"
 clap = { version = "4.2.7", features = ["derive"] }
-env_logger = "0.10.0"
 
 [build-dependencies]
 dcl-rpc = {version = "2.3.5", features = ["client", "tungstenite"]}
@@ -47,4 +47,4 @@ path = "src/client_b.rs"
 
 [[bin]]
 name = "benchmark"
-path = "src/benchmark.rs"
+path = "src/benchmark/benchmark.rs"

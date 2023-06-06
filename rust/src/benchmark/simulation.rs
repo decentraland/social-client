@@ -12,7 +12,7 @@ use log::{debug, info};
 use rand::{seq::IteratorRandom, thread_rng};
 use tokio::sync::Mutex;
 
-use crate::{benchmark_args::Args, benchmark_client::TestWebSocketTransport};
+use super::{args::Args, client::TestWebSocketTransport};
 
 #[async_trait]
 pub trait Context {
