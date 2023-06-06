@@ -33,3 +33,11 @@ path = "src/friendship_procedures_executor.rs"
 [[bin]]
 name = "friendship_events_listener"
 path = "src/friendship_events_listener.rs"
+
+[[bin]]
+name = "client_a"
+path = "src/client_a.rs"
+
+[[bin]]
+name = "client_b"
+path = "src/client_b.rs"

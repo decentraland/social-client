@@ -16,10 +16,19 @@ const DELAY: u64 = 5; // seconds
 // Define different flows
 #[derive(Clone)]
 pub enum Flow {
+    /// Request A-B, Cancel A-B
     Flow1,
+    /// Request A-B, Accept B-A, Delete A-B
     Flow2,
+    /// Request A-B, Reject B-A
     Flow3,
+    /// Request A-B, Accept B-A, Delete B-A
     Flow4,
+    Request,
+    Accept,
+    Reject,
+    Delete,
+    Cancel,
 }
 
 impl Flow {
@@ -30,13 +39,18 @@ impl Flow {
             "flow2" => Some(Flow::Flow2),
             "flow3" => Some(Flow::Flow3),
             "flow4" => Some(Flow::Flow4),
+            "request" => Some(Flow::Request),
+            "accept" => Some(Flow::Accept),
+            "reject" => Some(Flow::Reject),
+            "delete" => Some(Flow::Delete),
+            "cancel" => Some(Flow::Cancel),
             _ => None,
         }
     }
 
     /// Execute the flow with the given users and module clients for A and B respectively.
     /// Executing a flow means sending friendship event updates to the server.
-    pub async fn execute(
+    pub async fn execute_flow(
         &self,
         module_a: &FriendshipsServiceClient<Transport>,
         module_b: &FriendshipsServiceClient<Transport>,
@@ -61,10 +75,47 @@ impl Flow {
                 reject(module_b, &user_b.token, &user_a.address).await;
             }
             Flow::Flow4 => {
-                // Implement Flow 4: Request A-B, Accept B-A, Delete B-A
+                // Implement Flow 4: Request A-B, Accept A-B, Delete B-A
                 request(module_a, &user_a.token, &user_b.address).await;
                 accept(module_b, &user_b.token, &user_a.address).await;
                 delete(module_b, &user_b.token, &user_a.address).await;
+            }
+            _ => {
+                // Do nothing for other Flow variants
+            }
+        }
+    }
+
+    /// Execute a friendship event update with the given users and module client.
+    pub async fn execute_event(
+        &self,
+        module: &FriendshipsServiceClient<Transport>,
+        user_a: AuthUser,
+        user_b: AuthUser,
+    ) {
+        match self {
+            Flow::Request => {
+                // Implement Request A-B
+                request(module, &user_a.token, &user_b.address).await;
+            }
+            Flow::Accept => {
+                // Implement Accept B-A
+                accept(module, &user_b.token, &user_a.address).await;
+            }
+            Flow::Reject => {
+                // Implement Reject B-A
+                reject(module, &user_b.token, &user_a.address).await;
+            }
+            Flow::Delete => {
+                // Implement Delete A-B
+                delete(module, &user_a.token, &user_b.address).await;
+            }
+            Flow::Cancel => {
+                // Implement Cancel A-B
+                cancel(module, &user_a.token, &user_b.address).await;
+            }
+            _ => {
+                // Do nothing for other Flow variants
             }
         }
     }

@@ -3,24 +3,37 @@ use dcl_rpc::{client::RpcClient, transports::web_sockets::WebSocketTransport};
 use social_client::{credentials::load_users, FriendshipsServiceClientDefinition};
 use social_client::{FriendshipsServiceClient, Payload};
 
-const RECONNECT_DELAY: u64 = 5; // seconds
+const RECONNECT_DELAY: u64 = 10; // seconds
+const TIMEOUT_RESPONSE: u64 = 20; // seconds
 
 #[tokio::main]
 async fn main() {
     // Auth Users
-    let (_, user_b) = load_users().await;
+    let (user_a, user_b) = load_users().await;
 
-    let token = user_b.token;
+    let which_a = format!("USER_A_{}", &user_a.address[user_a.address.len() - 4..]);
+    let which_b = format!("USER_B_{}", &user_b.address[user_b.address.len() - 4..]);
 
-    // let host = "wss://rpc-social-service.decentraland.org";
-    let host = "ws://localhost:8085";
+    // Hosts
+    let host_a = "ws://localhost:5000";
+    let host_b = "ws://localhost:5001";
 
-    loop {
-        handle_connection(host, &token).await;
-    }
+    let handle_a = tokio::spawn(async move {
+        loop {
+            handle_connection(host_a, &user_a.token, &which_a).await;
+        }
+    });
+
+    let handle_b = tokio::spawn(async move {
+        loop {
+            handle_connection(host_b, &user_b.token, &which_b).await;
+        }
+    });
+
+    let _ = tokio::try_join!(handle_a, handle_b);
 }
 
-async fn handle_connection(host: &str, token: &str) {
+async fn handle_connection(host: &str, token: &str, which: &str) {
     loop {
         match WebSocketClient::connect(host).await {
             Ok(client_connection) => {
@@ -39,7 +52,7 @@ async fn handle_connection(host: &str, token: &str) {
 
                 // 4. Listen to updates to my address
                 let updates_response = tokio::time::timeout(
-                    tokio::time::Duration::from_secs(RECONNECT_DELAY),
+                    tokio::time::Duration::from_secs(TIMEOUT_RESPONSE),
                     module.subscribe_friendship_events_updates(Payload {
                         synapse_token: Some(token.to_string()),
                     }),
@@ -47,14 +60,16 @@ async fn handle_connection(host: &str, token: &str) {
                 .await;
                 match updates_response {
                     Ok(Ok(mut u)) => {
-                        println!("> Server Streams > Response > Notifications");
+                        println!(
+                            "> Server Streams > Response > Notifications > {which} > Listening..."
+                        );
                         while let Ok(Some(update)) = tokio::time::timeout(
-                            tokio::time::Duration::from_secs(RECONNECT_DELAY),
+                            tokio::time::Duration::from_secs(TIMEOUT_RESPONSE),
                             u.next(),
                         )
                         .await
                         {
-                            println!("> Server Streams > Response > Notifications {update:?}");
+                            println!("> Server Streams > Response > Notifications > {which} > {update:?}");
                         }
                         println!("Timeout when waiting for response, reconnecting...");
                     }
@@ -65,7 +80,7 @@ async fn handle_connection(host: &str, token: &str) {
                 }
             }
             Err(err) => {
-                println!("Failed to connect, retrying in 5 seconds...");
+                println!("Failed to connect, retrying in {RECONNECT_DELAY} seconds...");
                 println!("Error: {err:?}");
                 tokio::time::sleep(tokio::time::Duration::from_secs(RECONNECT_DELAY)).await;
             }

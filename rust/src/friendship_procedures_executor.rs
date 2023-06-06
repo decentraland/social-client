@@ -61,7 +61,7 @@ async fn main() {
 
                 // 3. Update Friendship Events message
                 if let Some(flow) = flow.clone() {
-                    flow.execute(&module_a, &module_b, user_a.clone(), user_b.clone())
+                    flow.execute_flow(&module_a, &module_b, user_a.clone(), user_b.clone())
                         .await;
                 } else {
                     // Do nothing
