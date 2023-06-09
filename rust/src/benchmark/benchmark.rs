@@ -17,9 +17,11 @@ async fn main() {
     std::env::set_var("RUST_LOG", "info");
     use env_logger::init as initialize_logger;
     initialize_logger();
+
     let args = Args::parse();
 
     let test_elapsed_time = Instant::now();
+
     let mut set = tokio::task::JoinSet::new();
 
     let mut whole_conns = vec![];
