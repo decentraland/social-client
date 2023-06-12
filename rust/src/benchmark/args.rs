@@ -12,7 +12,7 @@ pub struct Args {
     #[arg(
         short,
         long,
-        default_value_t = 100,
+        default_value_t = 50,
         help = "Amount of clients to connect"
     )]
     pub clients: usize,

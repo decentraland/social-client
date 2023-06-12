@@ -16,7 +16,7 @@ use super::{
 };
 
 pub struct TestContext {
-    pub auth_users: Vec<AuthUser>,
+    pub auth_user: AuthUser,
     pub timeout: Duration,
 }
 
@@ -28,18 +28,16 @@ pub struct TestClient {
 #[async_trait]
 impl Context for TestContext {
     async fn init(args: &Args) -> Self {
-        let mut auth_users = vec![];
         let (auth_user_a, auth_user_b) = load_users().await;
 
-        // TODO: Populate addresses with addresses.
-        // Each client is associated with a different user.
-        for _ in 0..args.clients {
-            auth_users.push(auth_user_a.clone());
-            auth_users.push(auth_user_b.clone());
-        }
+        let random_user = if rand::random() {
+            auth_user_a
+        } else {
+            auth_user_b
+        };
 
         Self {
-            auth_users,
+            auth_user: random_user,
             timeout: Duration::from_secs(args.timeout as u64),
         }
     }
@@ -62,10 +60,8 @@ impl Client<TestContext> for TestClient {
     }
 
     async fn act(mut self, context: &TestContext) -> Self {
-        let auth_user = context.auth_users.clone().pop().expect("Can pop auth user");
-
-        get_friends(&self.service, &auth_user).await;
-        get_request_events(&self.service, &auth_user).await;
+        get_friends(&self.service, &context.auth_user).await;
+        get_request_events(&self.service, &context.auth_user).await;
 
         self
     }
