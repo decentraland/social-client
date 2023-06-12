@@ -3,7 +3,11 @@ use std::time::Duration;
 use async_trait::async_trait;
 use dcl_rpc::client::RpcClient;
 
-use crate::FriendshipsServiceClient;
+use crate::{
+    credentials::{load_users, AuthUser},
+    friendship_procedures::{get_friends, get_request_events},
+    FriendshipsServiceClient,
+};
 
 use super::{
     args::Args,
@@ -12,7 +16,7 @@ use super::{
 };
 
 pub struct TestContext {
-    pub addresses: Vec<String>,
+    pub auth_users: Vec<AuthUser>,
     pub timeout: Duration,
 }
 
@@ -24,16 +28,18 @@ pub struct TestClient {
 #[async_trait]
 impl Context for TestContext {
     async fn init(args: &Args) -> Self {
-        let mut addresses = vec![];
+        let mut auth_users = vec![];
+        let (auth_user_a, auth_user_b) = load_users().await;
 
         // TODO: Populate addresses with addresses.
         // Each client is associated with a different user.
         for _ in 0..args.clients {
-            addresses.push("".to_string());
+            auth_users.push(auth_user_a.clone());
+            auth_users.push(auth_user_b.clone());
         }
 
         Self {
-            addresses,
+            auth_users,
             timeout: Duration::from_secs(args.timeout as u64),
         }
     }
@@ -55,7 +61,12 @@ impl Client<TestContext> for TestClient {
         Self { client, service }
     }
 
-    async fn act(mut self, _context: &TestContext) -> Self {
+    async fn act(mut self, context: &TestContext) -> Self {
+        let auth_user = context.auth_users.clone().pop().expect("Can pop auth user");
+
+        get_friends(&self.service, &auth_user).await;
+        get_request_events(&self.service, &auth_user).await;
+
         self
     }
 }

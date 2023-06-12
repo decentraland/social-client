@@ -20,7 +20,7 @@ pub struct Args {
     #[arg(
         short,
         long,
-        default_value_t = 5,
+        default_value_t = 1,
         help = "Simulation duration in minutes"
     )]
     pub duration: u8,
