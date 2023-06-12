@@ -99,14 +99,37 @@ impl Client<TestContext> for TestClient {
         // Take action based on self.last_event
         match self.last_event {
             Some(FriendshipEvent::REQUEST) => {
-                let accept = Flow::Accept;
-                accept
-                    .execute_event(&self.service, second_user, acting_user)
-                    .await;
-
-                self.last_event = Some(FriendshipEvent::ACCEPT);
+                match rand::random::<u8>() % 3 {
+                    0 => {
+                        // Randomly choose between accepting, cancelling, and rejecting
+                        let accept = Flow::Accept;
+                        accept
+                            .execute_event(&self.service, second_user, acting_user)
+                            .await;
+                        self.last_event = Some(FriendshipEvent::ACCEPT);
+                    }
+                    1 => {
+                        let cancel = Flow::Cancel;
+                        cancel
+                            .execute_event(&self.service, acting_user, second_user)
+                            .await;
+                        self.last_event = Some(FriendshipEvent::CANCEL);
+                    }
+                    _ => {
+                        let reject = Flow::Reject;
+                        reject
+                            .execute_event(&self.service, second_user, acting_user)
+                            .await;
+                        self.last_event = Some(FriendshipEvent::REJECT);
+                    }
+                }
             }
             Some(FriendshipEvent::CANCEL) => {
+                let request = Flow::Request;
+                request
+                    .execute_event(&self.service, acting_user, second_user)
+                    .await;
+
                 self.last_event = Some(FriendshipEvent::REQUEST);
             }
             Some(FriendshipEvent::ACCEPT) => {
@@ -118,6 +141,11 @@ impl Client<TestContext> for TestClient {
                 self.last_event = Some(FriendshipEvent::DELETE);
             }
             Some(FriendshipEvent::REJECT) => {
+                let request = Flow::Request;
+                request
+                    .execute_event(&self.service, acting_user, second_user)
+                    .await;
+
                 self.last_event = Some(FriendshipEvent::REQUEST);
             }
             Some(FriendshipEvent::DELETE) => {
