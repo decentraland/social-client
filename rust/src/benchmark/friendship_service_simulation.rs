@@ -2,10 +2,11 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use dcl_rpc::client::RpcClient;
+use rand::{thread_rng, Rng};
 
 use crate::{
     credentials::{load_users, AuthUser},
-    friendship_procedures::{get_friends, get_request_events},
+    friendship_procedures::{get_friends, get_request_events, Flow},
     FriendshipsServiceClient,
 };
 
@@ -15,14 +16,25 @@ use super::{
     simulation::{Client, Context},
 };
 
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
+pub enum FriendshipEvent {
+    REQUEST, // Send a friendship request
+    CANCEL,  // Cancel a friendship request
+    ACCEPT,  // Accept a friendship request
+    REJECT,  // Reject a friendship request
+    DELETE,  // Delete an existing friendship
+}
+
 pub struct TestContext {
-    pub auth_user: AuthUser,
+    pub acting_user: AuthUser,
+    pub second_user: AuthUser,
     pub timeout: Duration,
 }
 
 pub struct TestClient {
     pub client: RpcClient<TestWebSocketTransport>,
     pub service: FriendshipsServiceClient<TestWebSocketTransport>,
+    pub last_event: Option<FriendshipEvent>,
 }
 
 #[async_trait]
@@ -30,14 +42,22 @@ impl Context for TestContext {
     async fn init(args: &Args) -> Self {
         let (auth_user_a, auth_user_b) = load_users().await;
 
-        let random_user = if rand::random() {
-            auth_user_a
+        // Randomize the assigment of the acting user and the second user
+        let acting_user = if thread_rng().gen_bool(0.5) {
+            auth_user_a.clone()
         } else {
+            auth_user_b.clone()
+        };
+
+        let second_user = if acting_user == auth_user_a {
             auth_user_b
+        } else {
+            auth_user_a
         };
 
         Self {
-            auth_user: random_user,
+            acting_user,
+            second_user,
             timeout: Duration::from_secs(args.timeout as u64),
         }
     }
@@ -56,12 +76,67 @@ impl Client<TestContext> for TestClient {
             .await
             .expect("Can create frienships service");
 
-        Self { client, service }
+        Self {
+            client,
+            service,
+            last_event: None,
+        }
     }
 
     async fn act(mut self, context: &TestContext) -> Self {
-        get_friends(&self.service, &context.auth_user).await;
-        get_request_events(&self.service, &context.auth_user).await;
+        let acting_user = context.acting_user.clone();
+        let second_user = context.second_user.clone();
+
+        // Randomize the action to be performed by the client
+        if thread_rng().gen_bool(0.5) {
+            get_friends(&self.service, &acting_user).await;
+            get_request_events(&self.service, &acting_user).await;
+        } else {
+            get_friends(&self.service, &second_user).await;
+            get_request_events(&self.service, &second_user).await;
+        };
+
+        // Take action based on self.last_event
+        match self.last_event {
+            Some(FriendshipEvent::REQUEST) => {
+                let accept = Flow::Accept;
+                accept
+                    .execute_event(&self.service, acting_user, second_user)
+                    .await;
+
+                self.last_event = Some(FriendshipEvent::ACCEPT);
+            }
+            Some(FriendshipEvent::CANCEL) => {
+                self.last_event = Some(FriendshipEvent::REQUEST);
+            }
+            Some(FriendshipEvent::ACCEPT) => {
+                let request = Flow::Request;
+                request
+                    .execute_event(&self.service, acting_user, second_user)
+                    .await;
+
+                self.last_event = Some(FriendshipEvent::DELETE);
+            }
+            Some(FriendshipEvent::REJECT) => {
+                self.last_event = Some(FriendshipEvent::REQUEST);
+            }
+            Some(FriendshipEvent::DELETE) => {
+                let request = Flow::Request;
+                request
+                    .execute_event(&self.service, acting_user, second_user)
+                    .await;
+
+                self.last_event = Some(FriendshipEvent::REQUEST);
+            }
+            None => {
+                let request = Flow::Request;
+                request
+                    .execute_event(&self.service, acting_user, second_user)
+                    .await;
+
+                self.last_event = Some(FriendshipEvent::REQUEST);
+            }
+        }
 
         self
     }
