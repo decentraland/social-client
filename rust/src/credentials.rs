@@ -10,7 +10,7 @@ pub async fn get_input(prompt: &str) -> io::Result<String> {
     Ok(buffer.trim_end().to_owned())
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AuthUser {
     pub address: String,
     pub token: String,

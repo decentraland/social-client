@@ -43,6 +43,10 @@ To run the each program, use the following commands (in separate terminals) in t
 
 `cargo run --bin client_b`
 
+### Benchmarking
+
+`cargo run --bin benchmark`
+
 ---
 
 ## Accessing Social-Service Instances:
