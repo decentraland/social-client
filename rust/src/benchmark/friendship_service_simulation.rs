@@ -48,9 +48,9 @@ impl Client<TestContext> for TestClient {
             .expect("Can create port");
 
         let service = port
-            .load_module::<FriendshipsServiceClient<_>>("FrienshipService")
+            .load_module::<FriendshipsServiceClient<_>>("FriendshipsService")
             .await
-            .expect("Can create quests service");
+            .expect("Can create frienships service");
 
         Self { client, service }
     }
