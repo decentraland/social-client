@@ -101,7 +101,7 @@ impl Client<TestContext> for TestClient {
             Some(FriendshipEvent::REQUEST) => {
                 let accept = Flow::Accept;
                 accept
-                    .execute_event(&self.service, acting_user, second_user)
+                    .execute_event(&self.service, second_user, acting_user)
                     .await;
 
                 self.last_event = Some(FriendshipEvent::ACCEPT);
