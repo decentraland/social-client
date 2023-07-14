@@ -41,3 +41,7 @@ path = "src/client_a.rs"
 [[bin]]
 name = "client_b"
 path = "src/client_b.rs"
+
+[[bin]]
+name = "client_c"
+path = "src/client_c.rs"

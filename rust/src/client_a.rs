@@ -13,9 +13,9 @@ const RECONNECT_DELAY: u64 = 10; // seconds
 #[tokio::main]
 async fn main() {
     // Auth Users
-    let (user_a, user_b) = load_users().await;
+    let [user_a, user_b, _] = load_users().await;
 
-    let host = "ws://127.0.0.1:5000";
+    let host = "ws://127.0.0.1:8085";
 
     loop {
         match WebSocketClient::connect(host).await {
