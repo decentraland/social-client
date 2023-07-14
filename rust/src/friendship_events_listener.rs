@@ -11,14 +11,14 @@ type Transport = WebSocketTransport<TungsteniteWebSocket, ()>;
 #[tokio::main]
 async fn main() {
     // Auth Users
-    let (user_a, user_b) = load_users().await;
+    let [user_a, user_b, _] = load_users().await;
 
     let which_a = format!("USER_A_{}", &user_a.address[user_a.address.len() - 4..]);
     let which_b = format!("USER_B_{}", &user_b.address[user_b.address.len() - 4..]);
 
     // Hosts
-    let host_a = "ws://localhost:5000";
-    let host_b = "ws://localhost:5001";
+    let host_a = "ws://localhost:8085";
+    let host_b = "ws://localhost:8085";
 
     let handle_a = tokio::spawn(async move {
         loop {
